@@ -1,14 +1,23 @@
+# 1 - COMPLETED WHOOP WHOOP :)
+# connect to data source to extract OT data for transmission to the cloud repo
+
+# 2 -
+# organize the OT data into transmittable packets that can be stored in ascending time for plotting
+
+# 3 - COMPLETED WOOHOOOOOO!!!!!!
+# automatically increase/decrease the artifacts capacity to handle data volume
+
+# 4
+# demonstrate data packaging/unpackaging strategy
+
+# 5 - COMPLETED
+# Maximize data volume transferred speed per second, while minimizing latency
+
 import os
-import csv
+import datetime
 from pathlib import Path
 
 # External Packages
-try:
-    import asyncio
-except ImportError:
-    os.system("python -m pip install asyncio")
-    import asyncio
-
 try:
     from azure.iot.device import IoTHubDeviceClient, Message
     from azure.core.exceptions import AzureError
@@ -30,6 +39,19 @@ except ImportError:
 # Local Imports
 from window import guiWindow
 
+#time_delta = (date_2 - date_1)
+#total_seconds = time_delta.total_seconds()
+#minutes = total_seconds/60
+
+
+def getUploadSpeed(endFileUpload, startFileUpload, total_number):
+    time_delta = (endFileUpload - startFileUpload)
+    total_seconds = time_delta.total_seconds()
+    uploadSpeed = total_number / total_seconds
+    print(
+        f"This {total_number} of files was uploaded in {total_seconds} amount of seconds")
+    print(
+        f"Upload Speed: {uploadSpeed} files/second")
 
 def file_upload(folder_path):
 
@@ -39,39 +61,39 @@ def file_upload(folder_path):
 
     # Create a container called 'folder_name' and Set the permission so the blobs are public.
     container_name = os.path.basename(folder_path)
-    
+
     # need to do a try catch to handle container already exists error
-    blob_service_client.create_container(
-        container_name, public_access=PublicAccess.Container)
-
-    """
-        # Create Sample folder if it not exists, and create a file in folder Sample to test the upload and download.
-        local_path = os.path.expanduser("~/Sample")
-        if not os.path.exists(local_path):
-            os.makedirs(os.path.expanduser("~/Sample"))
-        local_file_name = "test1.csv"
-        full_path_to_file = os.path.join(local_path, local_file_name)
-    """
-    # everything above this line is wokring
-
+    try:
+        blob_service_client.create_container(
+            container_name, public_access=PublicAccess.Container)
+    except Exception as e:
+        print(f'Error in creating container - {e}')
+        return
+    startFileUpload = datetime.datetime.now()
+    # logging.info
+    print(startFileUpload)
+    total_number = 0
     for filename in os.listdir(folder_path):
         path = Path(folder_path) / filename
-        
+
         # checks file extension to only upload .csv type
         if path.suffix == '.csv':
             # Upload the created file, use local_file_name for the blob name
-            # need to do a try catch to handle container already exists error
-            blob_client = blob_service_client.get_blob_client(
-                container=container_name, blob=filename)
-            with open(path, "rb") as data:
-                blob_client.upload_blob(data)
-
-    # List the blobs in the container
-    container = blob_service_client.get_container_client(
-        container=container_name)
-    generator = container.list_blobs()
-    for blob in generator:
-        print("\t Blob name: " + blob.name)  # delete this after confirmation
+            # try catch to handle container already exists error
+            total_number += 1
+            try:
+                blob_client = blob_service_client.get_blob_client(
+                    container=container_name, blob=filename)
+                with open(path, "rb") as data:
+                    blob_client.upload_blob(data)
+            except Exception as e:
+                print(f'Error in creating blobs - {e}')
+                return
+    endFileUpload = datetime.datetime.now()
+    print(endFileUpload)
+    # test this to see if it ouputs correct metrics
+    # last upload speed 11 files/second
+    getUploadSpeed(endFileUpload, startFileUpload, total_number)
 
 
 def main():
